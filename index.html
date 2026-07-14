@@ -695,6 +695,19 @@ function App() {
     network: 'Network issue — try again',
   };
 
+  const writeTasks = useCallback((newTasks) => {
+    if (!syncCode || !FIREBASE_CONFIGURED) return;
+    db.collection('todos').doc(syncCode).set({ tasks: newTasks, updatedAt: Date.now() }, { merge: true });
+  }, [syncCode]);
+
+  const createTask = useCallback((text, category, tab, context = '') => {
+    const trimmed = text.trim();
+    if (!trimmed) return;
+    const now = Date.now();
+    const task = { id: uid(), text: trimmed, context: context.trim(), category, tab, createdAt: now, tabEnteredAt: now };
+    writeTasks([task, ...tasksRef.current]);
+  }, [writeTasks]);
+
   const toggleListening = useCallback(() => {
     const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
     if (!SpeechRecognition) return;
@@ -813,11 +826,6 @@ function App() {
     return () => { unsubAuth(); if (unsubSnap) unsubSnap(); };
   }, [syncCode]);
 
-  const writeTasks = useCallback((newTasks) => {
-    if (!syncCode || !FIREBASE_CONFIGURED) return;
-    db.collection('todos').doc(syncCode).set({ tasks: newTasks, updatedAt: Date.now() }, { merge: true });
-  }, [syncCode]);
-
   const writeCategories = useCallback((newCategories) => {
     if (!syncCode || !FIREBASE_CONFIGURED) return;
     db.collection('todos').doc(syncCode).set({ categories: newCategories, updatedAt: Date.now() }, { merge: true });
@@ -896,14 +904,6 @@ function App() {
     const interval = setInterval(runCheck, ESCALATION_CHECK_INTERVAL_MS);
     return () => clearInterval(interval);
   }, [escalation, loaded, writeTasks]);
-
-  const createTask = useCallback((text, category, tab, context = '') => {
-    const trimmed = text.trim();
-    if (!trimmed) return;
-    const now = Date.now();
-    const task = { id: uid(), text: trimmed, context: context.trim(), category, tab, createdAt: now, tabEnteredAt: now };
-    writeTasks([task, ...tasksRef.current]);
-  }, [writeTasks]);
 
   const handleAdd = useCallback(() => {
     createTask(newText, newCategory, currentTab, newContext);
