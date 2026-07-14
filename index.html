@@ -1082,7 +1082,7 @@ ReactDOM.createRoot(document.getElementById('root')).render(<App />);
 <script>
   (function () {
     var src = document.getElementById('app-source').textContent;
-    var output = Babel.transform(src, { presets: ['react'] }).code;
+    var output = Babel.transform(src, { presets: [['react', { runtime: 'classic' }]] }).code;
     var s = document.createElement('script');
     s.textContent = output;
     document.body.appendChild(s);
