@@ -676,6 +676,7 @@ function App() {
 
   const [listening, setListening] = useState(false);
   const [voiceSupported, setVoiceSupported] = useState(false);
+  const [voiceError, setVoiceError] = useState('');
   const recognitionRef = useRef(null);
 
   useEffect(() => {
@@ -685,6 +686,14 @@ function App() {
 
   useEffect(() => () => { recognitionRef.current && recognitionRef.current.stop(); }, []);
 
+  const VOICE_ERROR_MESSAGES = {
+    'not-allowed': "Mic permission blocked — check site settings",
+    'service-not-allowed': "Mic permission blocked — check site settings",
+    'no-speech': "Didn't catch anything — try again",
+    'audio-capture': "No microphone found",
+    network: 'Network issue — try again',
+  };
+
   const toggleListening = useCallback(() => {
     const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
     if (!SpeechRecognition) return;
@@ -692,12 +701,18 @@ function App() {
       recognitionRef.current && recognitionRef.current.stop();
       return;
     }
+    setVoiceError('');
     const recognition = new SpeechRecognition();
     recognition.lang = navigator.language || 'en-US';
     recognition.interimResults = true;
     recognition.continuous = false;
     recognition.onstart = () => { setListening(true); setNewText(''); };
-    recognition.onerror = () => setListening(false);
+    recognition.onerror = (event) => {
+      console.error('Speech recognition error:', event.error);
+      setListening(false);
+      setVoiceError(VOICE_ERROR_MESSAGES[event.error] || `Voice input failed (${event.error})`);
+      setTimeout(() => setVoiceError(''), 4000);
+    };
     recognition.onend = () => setListening(false);
     recognition.onresult = (event) => {
       let interim = '';
@@ -991,7 +1006,7 @@ function App() {
               value={newText}
               onChange={(e) => setNewText(e.target.value)}
               onKeyDown={(e) => { if (e.key === 'Enter') handleAdd(); }}
-              placeholder={listening ? 'Listening…' : `Add to ${activeTab.label}...`}
+              placeholder={voiceError || (listening ? 'Listening…' : `Add to ${activeTab.label}...`)}
             />
             {voiceSupported && (
               <button
