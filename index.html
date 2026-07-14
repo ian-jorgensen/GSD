@@ -1,0 +1,1090 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+<title>GSD</title>
+<link rel="manifest" href="manifest.json" />
+<meta name="theme-color" content="#F7F7F5" />
+<link rel="apple-touch-icon" href="icons/icon-192.png" />
+<meta name="apple-mobile-web-app-capable" content="yes" />
+<meta name="apple-mobile-web-app-status-bar-style" content="default" />
+<meta name="apple-mobile-web-app-title" content="GSD" />
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;600;700&display=swap');
+
+  :root {
+    --bg: #F7F7F5;
+    --sidebar-bg: #FBFAF8;
+    --ink: #1C1E26;
+    --hairline: #E5E3DC;
+    --card-bg: #FFFFFF;
+    --input-bg: #F9FAFB;
+    --muted: #6B7280;
+    --faint: #9CA3AF;
+  }
+  [data-theme="dark"] {
+    --bg: #1A1720;
+    --sidebar-bg: #221F29;
+    --ink: #EFEAF2;
+    --hairline: #38323F;
+    --card-bg: #26222E;
+    --input-bg: #2A2632;
+    --muted: #B8AEC2;
+    --faint: #8D8296;
+  }
+
+  * { box-sizing: border-box; }
+  html, body { margin: 0; height: 100%; }
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+    background: var(--bg);
+    color: var(--ink);
+  }
+  button, input, textarea, select { font-family: inherit; }
+  button { cursor: pointer; }
+  :focus-visible { outline: 2px solid #94A3B8; outline-offset: 2px; }
+
+  .brand { font-family: 'Space Grotesk', sans-serif; font-weight: 600; }
+
+  /* ---------- Layout ---------- */
+  .app-shell { min-height: 100vh; }
+  .main-content { padding-bottom: 96px; }
+
+  .sidebar {
+    display: none;
+    flex-direction: column;
+    position: fixed;
+    left: 0; top: 0; bottom: 0;
+    width: 224px;
+    border-right: 1px solid var(--hairline);
+    background: var(--sidebar-bg);
+    padding: 24px 16px;
+  }
+  .bottom-nav {
+    position: fixed;
+    left: 0; right: 0; bottom: 0;
+    border-top: 1px solid var(--hairline);
+    background: var(--sidebar-bg);
+    display: flex;
+  }
+
+  @media (min-width: 768px) {
+    .sidebar { display: flex; }
+    .bottom-nav { display: none; }
+    .main-content { margin-left: 224px; padding-bottom: 32px; }
+  }
+
+  /* ---------- Nav ---------- */
+  .nav-btn {
+    display: flex; align-items: center; gap: 12px;
+    padding: 10px 12px;
+    font-size: 14px; font-weight: 500;
+    background: none; border: none; color: var(--muted);
+    width: 100%; text-align: left;
+  }
+  .nav-btn .nav-label { flex: 1; }
+  .nav-badge {
+    font-size: 11px; font-weight: 600; border-radius: 999px;
+    padding: 1px 6px; color: #2A2432;
+  }
+  .theme-btn {
+    background: none; border: none; color: var(--faint); padding: 6px;
+    display: flex; align-items: center; justify-content: center;
+  }
+
+  .mnav-item {
+    flex: 1; display: flex; flex-direction: column; align-items: center; gap: 2px;
+    padding: 10px 0; background: none; border: none;
+  }
+  .mnav-item .mnav-label { font-size: 11px; font-weight: 500; }
+  .mnav-badge-wrap { position: relative; }
+  .mnav-badge {
+    position: absolute; top: -6px; right: -8px;
+    font-size: 9px; font-weight: 600; border-radius: 999px;
+    width: 16px; height: 16px; display: flex; align-items: center; justify-content: center;
+    color: #2A2432;
+  }
+
+  /* ---------- Filters ---------- */
+  .filter-row { display: flex; align-items: center; gap: 8px; padding: 12px 16px 8px; }
+  .filter-chips { display: flex; gap: 8px; overflow-x: auto; flex: 1; }
+  .filter-chip {
+    flex-shrink: 0; padding: 6px 12px;
+    font-size: 12px; font-weight: 500; border: 1px solid; background: transparent;
+  }
+
+  /* ---------- Add bar ---------- */
+  .add-bar { padding: 12px 16px; border-bottom: 1px solid var(--hairline); }
+  .add-row { display: flex; align-items: center; gap: 8px; }
+  .add-input {
+    flex: 1; min-width: 0; background: transparent; border: none; outline: none; font-size: 14px; color: var(--ink);
+  }
+  .add-input::placeholder { color: var(--faint); }
+  .icon-btn {
+    padding: 6px; border: none; background: none; color: var(--faint); flex-shrink: 0;
+    display: flex; align-items: center; justify-content: center;
+  }
+  .icon-btn.listening { background: #DB9385; color: #2A2432; }
+  .add-btn {
+    padding: 6px; border: none; color: #2A2432; flex-shrink: 0;
+    display: flex; align-items: center; justify-content: center;
+  }
+  .context-input {
+    margin-top: 8px; width: 100%; font-size: 14px; background: var(--input-bg); color: var(--ink);
+    border-radius: 10px; padding: 8px; outline: none; resize: none; border: 1px solid var(--hairline);
+  }
+
+  /* ---------- Task list ---------- */
+  .task-list { padding: 12px 16px; display: flex; flex-direction: column; gap: 8px; }
+  .empty-state { font-size: 14px; color: var(--faint); text-align: center; padding: 40px 0; }
+  .task-card {
+    border: 1px solid var(--hairline); border-radius: 12px; padding: 12px; background: var(--card-bg);
+    transition: opacity .2s ease, transform .2s ease, background-color .2s ease, border-color .2s ease;
+  }
+  .task-card.removing { opacity: 0; transform: scale(0.95); }
+  .task-row { display: flex; align-items: flex-start; flex-wrap: wrap; gap: 8px; }
+  .checkbox {
+    width: 20px; height: 20px; border: 2px solid;
+    background: transparent; flex-shrink: 0; margin-top: 2px; padding: 0;
+  }
+  .task-text-btn {
+    flex: 1 1 100px; min-width: 80px; text-align: left; background: none; border: none; padding: 0;
+  }
+  .task-text { font-size: 14px; line-height: 1.45; color: var(--ink); margin: 0; }
+  .chevron-btn { background: none; border: none; color: var(--faint); flex-shrink: 0; margin-top: 2px; padding: 0; }
+  .context-text { margin: 8px 0 0 28px; font-size: 14px; color: var(--muted); white-space: pre-wrap; }
+
+  .pill-select { position: relative; display: inline-flex; align-items: center; border: 1px solid; flex-shrink: 0; }
+  .pill-select select {
+    appearance: none; -webkit-appearance: none; background: transparent; border: none;
+    padding: 4px 20px 4px 10px; font-size: 12px; font-weight: 500; outline: none;
+  }
+  .pill-select .chev { position: absolute; right: 6px; pointer-events: none; }
+
+  /* ---------- Setup / settings ---------- */
+  .setup-wrap {
+    min-height: 100vh; display: flex; align-items: center; justify-content: center; padding: 24px;
+  }
+  .setup-card { max-width: 380px; width: 100%; }
+  .setup-card h1 { font-size: 22px; margin: 0 0 8px; }
+  .setup-card p { font-size: 14px; color: var(--muted); line-height: 1.5; margin: 0 0 20px; }
+  .setup-input-row { display: flex; gap: 8px; margin-bottom: 12px; }
+  .setup-input {
+    flex: 1; min-width: 0; border: 1px solid var(--hairline); border-radius: 10px; padding: 10px 12px;
+    font-size: 15px; letter-spacing: 0.5px; outline: none; text-transform: uppercase;
+    background: var(--input-bg); color: var(--ink);
+  }
+  .btn-primary {
+    border: none; padding: 10px 16px; color: #fff; font-size: 14px; font-weight: 600;
+    background: #1C1E26;
+  }
+  .btn-secondary {
+    border: 1px solid var(--hairline); padding: 10px 16px; background: var(--card-bg);
+    font-size: 14px; font-weight: 500; color: var(--ink); width: 100%;
+  }
+  .divider { display: flex; align-items: center; gap: 10px; color: var(--faint); font-size: 12px; margin: 16px 0; }
+  .divider::before, .divider::after { content: ''; flex: 1; height: 1px; background: var(--hairline); }
+
+  .modal-overlay {
+    position: fixed; inset: 0; background: rgba(10,10,14,0.5);
+    display: flex; align-items: center; justify-content: center; padding: 20px; z-index: 50;
+  }
+  .modal-card {
+    background: var(--card-bg); border-radius: 14px; padding: 20px; max-width: 360px; width: 100%;
+  }
+  .modal-card h2 { font-size: 16px; margin: 0 0 4px; color: var(--ink); }
+  .settings-row {
+    display: flex; align-items: center; justify-content: space-between;
+    margin-bottom: 20px; font-size: 14px; color: var(--ink);
+  }
+  .settings-row-fixed { padding-bottom: 14px; margin-bottom: 4px; border-bottom: 1px solid var(--hairline); }
+  .toggle-switch { width: 40px; height: 20px; border: none; position: relative; flex-shrink: 0; }
+  .toggle-knob { position: absolute; top: 2px; width: 16px; height: 16px; background: #fff; transition: left 0.15s ease; }
+  .timing-row { display: flex; align-items: center; justify-content: space-between; gap: 8px; margin-bottom: 12px; font-size: 14px; color: var(--ink); }
+  .timing-row span:first-child { flex: 1; }
+  .timing-input {
+    width: 56px; text-align: center; font-size: 14px; background: transparent; color: var(--ink);
+    border: 1px solid var(--hairline); outline: none; padding: 4px 0;
+  }
+  .category-list { display: flex; flex-direction: column; gap: 8px; margin-bottom: 12px; }
+  .category-row { display: flex; align-items: center; gap: 8px; }
+  .category-swatch { width: 12px; height: 12px; flex-shrink: 0; }
+  .category-input {
+    flex: 1; min-width: 0; background: transparent; border: none; border-bottom: 1px solid var(--hairline);
+    outline: none; font-size: 14px; color: var(--ink); padding: 4px 0;
+  }
+  .theme-swatch {
+    display: flex; flex-direction: column; gap: 6px; padding: 6px;
+    background: none; border: 1.5px solid transparent;
+  }
+  .theme-swatch-strip { display: flex; width: 80px; height: 20px; overflow: hidden; }
+  .theme-swatch-strip span { flex: 1; }
+  .theme-swatch-label { font-size: 12px; font-weight: 500; color: var(--ink); text-align: left; }
+  .theme-swatch-grid { display: flex; flex-wrap: wrap; gap: 12px; }
+  .settings-section { border-bottom: 1px solid var(--hairline); }
+  .settings-section:last-child { border-bottom: none; }
+  .settings-section-header {
+    width: 100%; display: flex; align-items: center; justify-content: space-between;
+    background: none; border: none; padding: 12px 0; font-size: 14px; font-weight: 600; color: var(--ink);
+  }
+  .settings-section-body { padding-bottom: 16px; }
+  .settings-section-body p { font-size: 13px; color: var(--muted); margin: 0 0 12px; }
+  .modal-card p { font-size: 13px; color: var(--muted); margin: 0 0 16px; }
+  .code-display {
+    display: flex; align-items: center; justify-content: space-between; gap: 8px;
+    background: var(--input-bg); border: 1px solid var(--hairline); border-radius: 10px; padding: 10px 12px; margin-bottom: 16px;
+  }
+  .code-display span { font-size: 16px; letter-spacing: 1px; font-weight: 600; color: var(--ink); }
+  .copy-btn { background: none; border: none; color: var(--muted); padding: 4px; }
+  .modal-close { position: absolute; top: 14px; right: 14px; background: none; border: none; color: var(--faint); }
+  .modal-card { position: relative; }
+
+  .config-notice { max-width: 420px; margin: 60px auto; padding: 24px; text-align: center; color: var(--muted); font-size: 14px; line-height: 1.6; }
+
+  .undo-toast {
+    position: fixed; left: 50%; transform: translateX(-50%);
+    bottom: 96px;
+    background: #362E3A; color: #fff;
+    padding: 10px 10px 10px 16px;
+    display: flex; align-items: center; gap: 14px;
+    font-size: 13px; box-shadow: 0 6px 20px rgba(0,0,0,0.25);
+    z-index: 60; max-width: 90vw;
+  }
+  .undo-toast .msg { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 220px; }
+  .undo-btn {
+    background: rgba(255,255,255,0.12); border: none; color: #fff; font-weight: 600; font-size: 13px;
+    flex-shrink: 0; padding: 6px 14px;
+  }
+  @media (min-width: 768px) {
+    .undo-toast { bottom: 24px; }
+  }
+</style>
+</head>
+<body>
+<div id="root"></div>
+
+<script src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
+<script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
+<script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
+
+<script type="text/babel" data-presets="react">
+const { useState, useEffect, useCallback, useRef } = React;
+
+/* =========================================================
+   FIREBASE CONFIG — replace with your own project's values.
+   See README.md for step-by-step setup instructions.
+   ========================================================= */
+const firebaseConfig = {
+  apiKey: "AIzaSyCrE3o-3vv_wztO5LJY8mpCfusacf2gOvs",
+  authDomain: "alh-gsd.firebaseapp.com",
+  projectId: "alh-gsd",
+  storageBucket: "alh-gsd.firebasestorage.app",
+  messagingSenderId: "506421080467",
+  appId: "1:506421080467:web:ac5f8f4aaabbe5aade3866",
+};
+const FIREBASE_CONFIGURED = firebaseConfig.apiKey && firebaseConfig.apiKey !== "YOUR_API_KEY";
+
+let auth, db;
+if (FIREBASE_CONFIGURED) {
+  firebase.initializeApp(firebaseConfig);
+  auth = firebase.auth();
+  db = firebase.firestore();
+  try { db.enablePersistence({ synchronizeTabs: true }); } catch (e) { /* multiple tabs open, ignore */ }
+}
+
+/* ---------- Data ---------- */
+const DEFAULT_CATEGORY_NAMES = ['Camp', 'Hum', 'Synthstrom', 'App', 'Photo', 'Personal'];
+
+const COLOR_THEMES = [
+  { id: 'gsdPrimary', name: 'GSD Primary', palette: ['#A8C6A1', '#B8A9E0', '#F2B880', '#E8A0B4', '#A8CDE0', '#C9BFB4'] },
+  { id: 'mono', name: 'Mono', palette: ['#CFCFCF', '#B8B8B8', '#A0A0A0', '#8A8A8A', '#747474', '#5E5E5E'] },
+  { id: 'aurora', name: 'Aurora', palette: ['#3E1A78', '#3E3080', '#2F5C8A', '#237E93', '#189690', '#12B48A', '#0FE39B'] },
+  { id: 'plum', name: 'Plum', palette: ['#200E2E', '#3B2247', '#5C3E63', '#79587F', '#8F6F94', '#A688AC', '#CBB0D6'] },
+  { id: 'rosewood', name: 'Rosewood', palette: ['#FF1273', '#E0116E', '#C0125F', '#9E1155', '#7A0F44', '#600A34', '#380620'] },
+  { id: 'lagoon', name: 'Lagoon', palette: ['#0868F5', '#0089E8', '#00A6DA', '#00BEDA', '#00D0CE', '#00E0C0', '#00F5B0'] },
+  { id: 'sherbet', name: 'Sherbet', palette: ['#FFA8AD', '#FFCFA0', '#FFF9A0', '#C8F7AE', '#A0F0FF', '#A6C4FF', '#C6B8FF'] },
+];
+
+const DEFAULT_CATEGORIES = DEFAULT_CATEGORY_NAMES.map((name, i) => ({ name, color: COLOR_THEMES[0].palette[i] }));
+const FALLBACK_CATEGORY_COLOR = '#C9BFB4';
+const TABS = [
+  { id: 'urgent', label: 'Urgent', color: '#DB9385' },
+  { id: 'soon', label: 'Soon', color: '#E5C878' },
+  { id: 'future', label: 'Future', color: '#9CA8E0' },
+];
+const EMPTY_MESSAGES = {
+  urgent: 'Nothing urgent — nice.',
+  soon: 'Soon is clear. Add what’s next.',
+  future: 'Nothing on the horizon yet.',
+};
+const CODE_CHARS = 'ABCDEFGHJKMNPQRSTUVWXYZ23456789';
+const UNDO_WINDOW_MS = 5000;
+const DAY_MS = 24 * 60 * 60 * 1000;
+const DEFAULT_ESCALATION = { enabled: true, futureToSoonDays: 14, soonToUrgentDays: 7 };
+const ESCALATION_CHECK_INTERVAL_MS = 60 * 60 * 1000; // hourly
+
+function uid() { return Date.now().toString(36) + Math.random().toString(36).slice(2, 7); }
+function tabById(id) { return TABS.find((t) => t.id === id) || TABS[1]; }
+function categoryListLabel(set) {
+  const arr = Array.from(set);
+  if (arr.length === 0) return '';
+  if (arr.length === 1) return arr[0];
+  if (arr.length === 2) return `${arr[0]} or ${arr[1]}`;
+  return `${arr.slice(0, -1).join(', ')}, or ${arr[arr.length - 1]}`;
+}
+function generateCode() {
+  let s = '';
+  for (let i = 0; i < 8; i++) s += CODE_CHARS[Math.floor(Math.random() * CODE_CHARS.length)];
+  return s.slice(0, 4) + '-' + s.slice(4);
+}
+const VOICE_FILLER_PREFIXES = [
+  ['add', 'a', 'task', 'to'],
+  ['add', 'task', 'to'],
+  ['new', 'task', 'for'],
+  ['add', 'to'],
+  ['add'],
+  ['task'],
+];
+function stripPunct(w) {
+  return w.toLowerCase().replace(/^[.,!?]+/, '').replace(/[.,!?]+$/, '');
+}
+function parseVoiceCommand(rawText, categoryNames) {
+  let words = rawText.trim().split(/\s+/);
+  if (words.length === 0 || (words.length === 1 && words[0] === '')) {
+    return { text: rawText, tab: null, category: null };
+  }
+  const lower = words.map(stripPunct);
+  for (const prefix of VOICE_FILLER_PREFIXES) {
+    if (prefix.every((w, i) => lower[i] === w)) {
+      words = words.slice(prefix.length);
+      break;
+    }
+  }
+  let tab = null;
+  let category = null;
+  let consumed = 0;
+  const maxScan = Math.min(3, words.length);
+  for (let i = 0; i < maxScan; i++) {
+    const w = stripPunct(words[i]);
+    if (!tab) {
+      const tabMatch = TABS.find((t) => t.id === w || t.label.toLowerCase() === w);
+      if (tabMatch) { tab = tabMatch.id; consumed = i + 1; continue; }
+    }
+    if (!category) {
+      const catMatch = categoryNames.find((c) => c.toLowerCase() === w);
+      if (catMatch) { category = catMatch; consumed = i + 1; continue; }
+    }
+    break;
+  }
+  return { text: words.slice(consumed).join(' '), tab, category };
+}
+
+/* ---------- Icons (hand-drawn, no icon library dependency) ---------- */
+const Icon = ({ children, size = 18 }) => (
+  <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+    {children}
+  </svg>
+);
+const ZapIcon = (p) => <Icon {...p}><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2" /></Icon>;
+const ClockIcon = (p) => <Icon {...p}><circle cx="12" cy="12" r="9" /><polyline points="12 7 12 12 15.5 14" /></Icon>;
+const CalendarIcon = (p) => <Icon {...p}><rect x="3" y="4.5" width="18" height="16" rx="2" /><line x1="3" y1="9.5" x2="21" y2="9.5" /><line x1="8" y1="2.5" x2="8" y2="6.5" /><line x1="16" y1="2.5" x2="16" y2="6.5" /></Icon>;
+const PlusIcon = (p) => <Icon {...p}><line x1="12" y1="5" x2="12" y2="19" /><line x1="5" y1="12" x2="19" y2="12" /></Icon>;
+const ChevronDownIcon = (p) => <Icon {...p}><polyline points="6 9 12 15 18 9" /></Icon>;
+const ChevronUpIcon = (p) => <Icon {...p}><polyline points="18 15 12 9 6 15" /></Icon>;
+const FileTextIcon = (p) => <Icon {...p}><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" /><polyline points="14 2 14 8 20 8" /><line x1="8" y1="13" x2="16" y2="13" /><line x1="8" y1="17" x2="13" y2="17" /></Icon>;
+const CopyIcon = (p) => <Icon {...p}><rect x="9" y="9" width="12" height="12" rx="2" /><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1" /></Icon>;
+const XIcon = (p) => <Icon {...p}><line x1="18" y1="6" x2="6" y2="18" /><line x1="6" y1="6" x2="18" y2="18" /></Icon>;
+const MicIcon = (p) => <Icon {...p}><rect x="9" y="2" width="6" height="12" rx="3" /><path d="M5 10a7 7 0 0 0 14 0" /><line x1="12" y1="19" x2="12" y2="22" /><line x1="8" y1="22" x2="16" y2="22" /></Icon>;
+const SunIcon = (p) => <Icon {...p}><circle cx="12" cy="12" r="4" /><line x1="12" y1="2" x2="12" y2="4" /><line x1="12" y1="20" x2="12" y2="22" /><line x1="4.93" y1="4.93" x2="6.34" y2="6.34" /><line x1="17.66" y1="17.66" x2="19.07" y2="19.07" /><line x1="2" y1="12" x2="4" y2="12" /><line x1="20" y1="12" x2="22" y2="12" /><line x1="4.93" y1="19.07" x2="6.34" y2="17.66" /><line x1="17.66" y1="6.34" x2="19.07" y2="4.93" /></Icon>;
+const MoonIcon = (p) => <Icon {...p}><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z" /></Icon>;
+
+/* ---------- Small reusable pieces ---------- */
+function PillSelect({ value, options, onChange, colorFor, ariaLabel }) {
+  const color = colorFor(value);
+  return (
+    <div className="pill-select" style={{ borderColor: color + '55', backgroundColor: color + '15' }}>
+      <select aria-label={ariaLabel} value={value} onChange={(e) => onChange(e.target.value)} style={{ color }}>
+        {options.map((o) => <option key={o.value} value={o.value}>{o.label}</option>)}
+      </select>
+      <ChevronDownIcon size={11} className="chev" />
+    </div>
+  );
+}
+
+function ThemeSwatch({ themeDef, active, onClick }) {
+  return (
+    <button className="theme-swatch" onClick={onClick} aria-label={`Use ${themeDef.name} theme`} style={{ borderColor: active ? 'var(--ink)' : 'transparent' }}>
+      <div className="theme-swatch-strip">
+        {themeDef.palette.map((c, i) => <span key={i} style={{ backgroundColor: c }} />)}
+      </div>
+      <span className="theme-swatch-label">{themeDef.name}</span>
+    </button>
+  );
+}
+
+function FilterChip({ label, active, color, activeColor, activeTextColor, inactiveFill, inactiveBorderColor, inactiveTextColor, onClick }) {
+  const fill = activeColor || color;
+  const textColor = activeTextColor || '#fff';
+  const style = active
+    ? { backgroundColor: fill, borderColor: fill, color: textColor }
+    : {
+        backgroundColor: inactiveFill || 'transparent',
+        borderColor: inactiveBorderColor || color + '50',
+        color: inactiveTextColor || color,
+      };
+  return (
+    <button onClick={onClick} className="filter-chip" style={style}>
+      {label}
+    </button>
+  );
+}
+
+function TaskCard({ task, expanded, removing, onToggleExpand, onCheck, onMove, onCategoryChange, categoryNames, categoryColorMap }) {
+  const catColor = categoryColorMap[task.category] || FALLBACK_CATEGORY_COLOR;
+  const hasContext = Boolean(task.context && task.context.trim().length > 0);
+  return (
+    <div className={`task-card${removing ? ' removing' : ''}`}>
+      <div className="task-row">
+        <button onClick={() => onCheck(task.id)} aria-label="Complete task and remove it" className="checkbox" style={{ borderColor: catColor }} />
+        <button onClick={hasContext ? () => onToggleExpand(task.id) : undefined} className="task-text-btn">
+          <p className="task-text">{task.text}</p>
+        </button>
+        {hasContext && (
+          <button onClick={() => onToggleExpand(task.id)} aria-label={expanded ? 'Collapse context' : 'Expand context'} className="chevron-btn">
+            {expanded ? <ChevronUpIcon size={16} /> : <ChevronDownIcon size={16} />}
+          </button>
+        )}
+        <PillSelect value={task.category} options={categoryNames.map((c) => ({ value: c, label: c }))} onChange={(v) => onCategoryChange(task.id, v)} colorFor={(c) => categoryColorMap[c] || FALLBACK_CATEGORY_COLOR} ariaLabel="Change category" />
+        <PillSelect value={task.tab} options={TABS.map((t) => ({ value: t.id, label: t.label }))} onChange={(v) => onMove(task.id, v)} colorFor={(id) => tabById(id).color} ariaLabel="Move to" />
+      </div>
+      {hasContext && expanded && <p className="context-text">{task.context}</p>}
+    </div>
+  );
+}
+
+/* ---------- Setup screen (first run / pairing a new device) ---------- */
+function SetupScreen({ onConnect }) {
+  const [draft, setDraft] = useState('');
+
+  const handleCreate = () => setDraft(generateCode());
+  const handleConnect = () => {
+    const code = draft.trim().toUpperCase();
+    if (code) onConnect(code);
+  };
+
+  return (
+    <div className="setup-wrap">
+      <div className="setup-card">
+        <h1 className="brand">GSD</h1>
+        <p>Enter the sync code from your other device to link them, or create a new one to get started.</p>
+        <div className="setup-input-row">
+          <input
+            className="setup-input"
+            value={draft}
+            onChange={(e) => setDraft(e.target.value)}
+            placeholder="XXXX-XXXX"
+            onKeyDown={(e) => { if (e.key === 'Enter') handleConnect(); }}
+          />
+          <button className="btn-primary" onClick={handleConnect}>Connect</button>
+        </div>
+        <div className="divider">or</div>
+        <button className="btn-secondary" onClick={handleCreate}>Create a new code</button>
+      </div>
+    </div>
+  );
+}
+
+/* ---------- Settings modal ---------- */
+function SettingsSection({ title, defaultOpen, children }) {
+  const [open, setOpen] = useState(Boolean(defaultOpen));
+  return (
+    <div className="settings-section">
+      <button className="settings-section-header" onClick={() => setOpen((o) => !o)}>
+        <span>{title}</span>
+        {open ? <ChevronUpIcon size={16} /> : <ChevronDownIcon size={16} />}
+      </button>
+      {open && <div className="settings-section-body">{children}</div>}
+    </div>
+  );
+}
+
+function SettingsModal({ syncCode, isDark, onToggleTheme, onClose, onSwitchCode, categories, onRenameCategory, onAddCategory, colorThemeId, onSelectColorTheme, escalation, onUpdateEscalation }) {
+  const [copied, setCopied] = useState(false);
+  const [draft, setDraft] = useState('');
+  const [catDrafts, setCatDrafts] = useState(() => Object.fromEntries(categories.map((c) => [c.name, c.name])));
+  const [newCatName, setNewCatName] = useState('');
+
+  useEffect(() => {
+    setCatDrafts(Object.fromEntries(categories.map((c) => [c.name, c.name])));
+  }, [categories]);
+
+  const copy = () => {
+    navigator.clipboard?.writeText(syncCode).then(() => {
+      setCopied(true);
+      setTimeout(() => setCopied(false), 1500);
+    });
+  };
+
+  const commitRename = (oldName) => {
+    const val = (catDrafts[oldName] ?? '').trim();
+    if (val && val !== oldName) onRenameCategory(oldName, val);
+  };
+
+  const handleAddCategory = () => {
+    if (!newCatName.trim()) return;
+    onAddCategory(newCatName);
+    setNewCatName('');
+  };
+
+  return (
+    <div className="modal-overlay" onClick={onClose}>
+      <div className="modal-card" onClick={(e) => e.stopPropagation()}>
+        <button className="modal-close" onClick={onClose} aria-label="Close"><XIcon size={18} /></button>
+        <h2>Settings</h2>
+
+        <div className="settings-row settings-row-fixed">
+          <span>Dark mode</span>
+          <button className="theme-btn" onClick={onToggleTheme} aria-label={isDark ? 'Switch to light mode' : 'Switch to dark mode'}>
+            {isDark ? <SunIcon size={18} /> : <MoonIcon size={18} />}
+          </button>
+        </div>
+
+        <SettingsSection title="Color theme">
+          <div className="theme-swatch-grid">
+            {COLOR_THEMES.map((t) => (
+              <ThemeSwatch key={t.id} themeDef={t} active={colorThemeId === t.id} onClick={() => onSelectColorTheme(t.id)} />
+            ))}
+          </div>
+        </SettingsSection>
+
+        <SettingsSection title="Categories">
+          <div className="category-list">
+            {categories.map((c) => (
+              <div key={c.name} className="category-row">
+                <span className="category-swatch" style={{ backgroundColor: c.color }} />
+                <input
+                  className="category-input"
+                  value={catDrafts[c.name] ?? c.name}
+                  onChange={(e) => setCatDrafts((d) => ({ ...d, [c.name]: e.target.value }))}
+                  onBlur={() => commitRename(c.name)}
+                  onKeyDown={(e) => { if (e.key === 'Enter') { commitRename(c.name); e.target.blur(); } }}
+                />
+              </div>
+            ))}
+          </div>
+          <div className="setup-input-row">
+            <input className="setup-input" value={newCatName} onChange={(e) => setNewCatName(e.target.value)} onKeyDown={(e) => { if (e.key === 'Enter') handleAddCategory(); }} placeholder="New category" style={{ textTransform: 'none' }} />
+            <button className="btn-primary" onClick={handleAddCategory}>Add</button>
+          </div>
+        </SettingsSection>
+
+        <SettingsSection title="Timing">
+          <div className="settings-row" style={{ marginBottom: 12 }}>
+            <span>Auto-move tasks</span>
+            <button
+              className="toggle-switch"
+              onClick={() => onUpdateEscalation({ enabled: !escalation.enabled })}
+              aria-label={escalation.enabled ? 'Disable auto-move' : 'Enable auto-move'}
+              style={{ backgroundColor: escalation.enabled ? '#4A4351' : 'var(--hairline)' }}
+            >
+              <span className="toggle-knob" style={{ left: escalation.enabled ? 20 : 2 }} />
+            </button>
+          </div>
+          <div className="timing-row" style={{ opacity: escalation.enabled ? 1 : 0.5 }}>
+            <span>Move Future → Soon after</span>
+            <input
+              type="number" min={1} className="timing-input"
+              value={escalation.futureToSoonDays}
+              disabled={!escalation.enabled}
+              onChange={(e) => onUpdateEscalation({ futureToSoonDays: Math.max(1, parseInt(e.target.value, 10) || 1) })}
+            />
+            <span>days</span>
+          </div>
+          <div className="timing-row" style={{ opacity: escalation.enabled ? 1 : 0.5 }}>
+            <span>Move Soon → Urgent after</span>
+            <input
+              type="number" min={1} className="timing-input"
+              value={escalation.soonToUrgentDays}
+              disabled={!escalation.enabled}
+              onChange={(e) => onUpdateEscalation({ soonToUrgentDays: Math.max(1, parseInt(e.target.value, 10) || 1) })}
+            />
+            <span>days</span>
+          </div>
+        </SettingsSection>
+
+        <SettingsSection title="Sync code">
+          <p>Enter this on another device to see the same tasks there.</p>
+          <div className="code-display">
+            <span>{syncCode}</span>
+            <button className="copy-btn" onClick={copy} aria-label="Copy code"><CopyIcon size={16} /></button>
+          </div>
+          {copied && <p style={{ marginTop: -12, color: '#3F9142' }}>Copied!</p>}
+          <p>Switch this device to a different list.</p>
+          <div className="setup-input-row">
+            <input className="setup-input" value={draft} onChange={(e) => setDraft(e.target.value)} placeholder="XXXX-XXXX" />
+            <button className="btn-primary" onClick={() => draft.trim() && onSwitchCode(draft.trim().toUpperCase())}>Switch</button>
+          </div>
+        </SettingsSection>
+      </div>
+    </div>
+  );
+}
+
+/* ---------- Main app ---------- */
+function App() {
+  const [syncCode, setSyncCode] = useState(() => localStorage.getItem('gsd_sync_code') || null);
+  const [isDark, setIsDark] = useState(() => {
+    const saved = localStorage.getItem('gsd_theme');
+    if (saved) return saved === 'dark';
+    return true;
+  });
+  const [tasks, setTasks] = useState([]);
+  const [loaded, setLoaded] = useState(false);
+  const [categories, setCategories] = useState(DEFAULT_CATEGORIES);
+  const categoriesRef = useRef(DEFAULT_CATEGORIES);
+  const [colorThemeId, setColorThemeId] = useState('gsdPrimary');
+  const colorThemeIdRef = useRef('gsdPrimary');
+  useEffect(() => { colorThemeIdRef.current = colorThemeId; }, [colorThemeId]);
+  useEffect(() => { categoriesRef.current = categories; }, [categories]);
+  const [escalation, setEscalation] = useState(DEFAULT_ESCALATION);
+  const [currentTab, setCurrentTab] = useState('soon');
+  const [selectedCategories, setSelectedCategories] = useState(() => new Set());
+  const [expandedIds, setExpandedIds] = useState(new Set());
+  const [removingIds, setRemovingIds] = useState(new Set());
+  const [hiddenIds, setHiddenIds] = useState(new Set());
+  const [pendingDelete, setPendingDelete] = useState(null); // { id, timerId }
+  const [showSettings, setShowSettings] = useState(false);
+
+  const [newText, setNewText] = useState('');
+  const [newCategory, setNewCategory] = useState(DEFAULT_CATEGORIES[0].name);
+  const [newContext, setNewContext] = useState('');
+  const [showContextField, setShowContextField] = useState(false);
+
+  useEffect(() => {
+    if (categories.length > 0 && !categories.some((c) => c.name === newCategory)) {
+      setNewCategory(categories[0].name);
+    }
+  }, [categories, newCategory]);
+
+  const categoryNames = categories.map((c) => c.name);
+  const categoryColorMap = Object.fromEntries(categories.map((c) => [c.name, c.color]));
+
+  const [listening, setListening] = useState(false);
+  const [voiceSupported, setVoiceSupported] = useState(false);
+  const recognitionRef = useRef(null);
+
+  useEffect(() => {
+    const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+    setVoiceSupported(Boolean(SpeechRecognition));
+  }, []);
+
+  useEffect(() => () => { recognitionRef.current && recognitionRef.current.stop(); }, []);
+
+  const toggleListening = useCallback(() => {
+    const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+    if (!SpeechRecognition) return;
+    if (listening) {
+      recognitionRef.current && recognitionRef.current.stop();
+      return;
+    }
+    const recognition = new SpeechRecognition();
+    recognition.lang = navigator.language || 'en-US';
+    recognition.interimResults = true;
+    recognition.continuous = false;
+    recognition.onstart = () => { setListening(true); setNewText(''); };
+    recognition.onerror = () => setListening(false);
+    recognition.onend = () => setListening(false);
+    recognition.onresult = (event) => {
+      let interim = '';
+      let final = '';
+      for (let i = event.resultIndex; i < event.results.length; i++) {
+        const t = event.results[i][0].transcript;
+        if (event.results[i].isFinal) final += t;
+        else interim += t;
+      }
+      if (final) {
+        const parsed = parseVoiceCommand(final.trim(), categoriesRef.current.map((c) => c.name));
+        if (parsed.tab) setCurrentTab(parsed.tab);
+        if (parsed.category) setNewCategory(parsed.category);
+        setNewText(parsed.text.trim());
+      } else if (interim) {
+        setNewText(interim);
+      }
+    };
+    recognitionRef.current = recognition;
+    recognition.start();
+  }, [listening]);
+
+  const tasksRef = useRef([]);
+  useEffect(() => { tasksRef.current = tasks; }, [tasks]);
+
+  const pendingDeleteRef = useRef(null);
+  useEffect(() => () => { if (pendingDeleteRef.current) clearTimeout(pendingDeleteRef.current.timerId); }, []);
+
+  const connect = useCallback((code) => {
+    localStorage.setItem('gsd_sync_code', code);
+    setSyncCode(code);
+    setLoaded(false);
+  }, []);
+
+  useEffect(() => {
+    document.documentElement.setAttribute('data-theme', isDark ? 'dark' : 'light');
+    localStorage.setItem('gsd_theme', isDark ? 'dark' : 'light');
+    const meta = document.querySelector('meta[name="theme-color"]');
+    if (meta) meta.setAttribute('content', isDark ? '#1A1720' : '#F7F7F5');
+  }, [isDark]);
+
+  const toggleTheme = useCallback(() => setIsDark((d) => !d), []);
+
+  useEffect(() => {
+    if (!syncCode || !FIREBASE_CONFIGURED) return;
+    let unsubSnap = null;
+    setLoaded(false);
+    auth.signInAnonymously().catch((err) => console.error('Sign-in failed', err));
+    const unsubAuth = auth.onAuthStateChanged((user) => {
+      if (!user) return;
+      if (unsubSnap) unsubSnap();
+      const docRef = db.collection('todos').doc(syncCode);
+      unsubSnap = docRef.onSnapshot(
+        (snap) => {
+          const data = snap.data();
+          const rawTasks = (data && data.tasks) || [];
+          const now = Date.now();
+          let needsMigration = false;
+          const migratedTasks = rawTasks.map((t) => {
+            if (t.tabEnteredAt) return t;
+            needsMigration = true;
+            return { ...t, tabEnteredAt: now };
+          });
+          setTasks(migratedTasks);
+          setCategories((data && Array.isArray(data.categories) && data.categories.length > 0) ? data.categories : DEFAULT_CATEGORIES);
+          setColorThemeId((data && data.colorThemeId) || 'gsdPrimary');
+          setEscalation({ ...DEFAULT_ESCALATION, ...((data && data.escalation) || {}) });
+          setLoaded(true);
+          if (needsMigration && syncCode && FIREBASE_CONFIGURED) {
+            db.collection('todos').doc(syncCode).set({ tasks: migratedTasks, updatedAt: Date.now() }, { merge: true });
+          }
+        },
+        (err) => { console.error('Sync error', err); setLoaded(true); }
+      );
+    });
+    return () => { unsubAuth(); if (unsubSnap) unsubSnap(); };
+  }, [syncCode]);
+
+  const writeTasks = useCallback((newTasks) => {
+    if (!syncCode || !FIREBASE_CONFIGURED) return;
+    db.collection('todos').doc(syncCode).set({ tasks: newTasks, updatedAt: Date.now() }, { merge: true });
+  }, [syncCode]);
+
+  const writeCategories = useCallback((newCategories) => {
+    if (!syncCode || !FIREBASE_CONFIGURED) return;
+    db.collection('todos').doc(syncCode).set({ categories: newCategories, updatedAt: Date.now() }, { merge: true });
+  }, [syncCode]);
+
+  const renameCategory = useCallback((oldName, newName) => {
+    const trimmed = newName.trim();
+    if (!trimmed || trimmed === oldName) return;
+    const isDup = categoriesRef.current.some((c) => c.name.toLowerCase() === trimmed.toLowerCase() && c.name !== oldName);
+    if (isDup) return;
+    writeCategories(categoriesRef.current.map((c) => (c.name === oldName ? { ...c, name: trimmed } : c)));
+    writeTasks(tasksRef.current.map((t) => (t.category === oldName ? { ...t, category: trimmed } : t)));
+    setSelectedCategories((prev) => {
+      if (!prev.has(oldName)) return prev;
+      const next = new Set(prev);
+      next.delete(oldName);
+      next.add(trimmed);
+      return next;
+    });
+    setNewCategory((prev) => (prev === oldName ? trimmed : prev));
+  }, [writeCategories, writeTasks]);
+
+  const addCategory = useCallback((name) => {
+    const trimmed = name.trim();
+    if (!trimmed) return;
+    const isDup = categoriesRef.current.some((c) => c.name.toLowerCase() === trimmed.toLowerCase());
+    if (isDup) return;
+    const activeTheme = COLOR_THEMES.find((t) => t.id === colorThemeIdRef.current) || COLOR_THEMES[0];
+    const color = activeTheme.palette[categoriesRef.current.length % activeTheme.palette.length];
+    writeCategories([...categoriesRef.current, { name: trimmed, color }]);
+  }, [writeCategories]);
+
+  const applyColorTheme = useCallback((themeId) => {
+    const themeDef = COLOR_THEMES.find((t) => t.id === themeId);
+    if (!themeDef) return;
+    setColorThemeId(themeId);
+    const recolored = categoriesRef.current.map((c, i) => ({ ...c, color: themeDef.palette[i % themeDef.palette.length] }));
+    if (!syncCode || !FIREBASE_CONFIGURED) return;
+    db.collection('todos').doc(syncCode).set({ categories: recolored, colorThemeId: themeId, updatedAt: Date.now() }, { merge: true });
+  }, [syncCode]);
+
+  const updateEscalation = useCallback((patch) => {
+    setEscalation((prev) => {
+      const next = { ...prev, ...patch };
+      if (syncCode && FIREBASE_CONFIGURED) {
+        db.collection('todos').doc(syncCode).set({ escalation: next, updatedAt: Date.now() }, { merge: true });
+      }
+      return next;
+    });
+  }, [syncCode]);
+
+  // Auto-move tasks that have sat in Future/Soon past their configured threshold.
+  useEffect(() => {
+    if (!loaded) return;
+    const runCheck = () => {
+      if (!escalation.enabled) return;
+      const now = Date.now();
+      const futureMs = escalation.futureToSoonDays * DAY_MS;
+      const soonMs = escalation.soonToUrgentDays * DAY_MS;
+      let changed = false;
+      const next = tasksRef.current.map((t) => {
+        const enteredAt = t.tabEnteredAt || t.createdAt || now;
+        if (t.tab === 'future' && now - enteredAt >= futureMs) {
+          changed = true;
+          return { ...t, tab: 'soon', tabEnteredAt: now };
+        }
+        if (t.tab === 'soon' && now - enteredAt >= soonMs) {
+          changed = true;
+          return { ...t, tab: 'urgent', tabEnteredAt: now };
+        }
+        return t;
+      });
+      if (changed) writeTasks(next);
+    };
+    runCheck();
+    const interval = setInterval(runCheck, ESCALATION_CHECK_INTERVAL_MS);
+    return () => clearInterval(interval);
+  }, [escalation, loaded, writeTasks]);
+
+  const handleAdd = useCallback(() => {
+    const text = newText.trim();
+    if (!text) return;
+    const now = Date.now();
+    const task = { id: uid(), text, context: newContext.trim(), category: newCategory, tab: currentTab, createdAt: now, tabEnteredAt: now };
+    writeTasks([task, ...tasksRef.current]);
+    setNewText(''); setNewContext(''); setShowContextField(false);
+  }, [newText, newContext, newCategory, currentTab, writeTasks]);
+
+  const commitDelete = useCallback((id) => {
+    writeTasks(tasksRef.current.filter((t) => t.id !== id));
+    setHiddenIds((prev) => { const s = new Set(prev); s.delete(id); return s; });
+  }, [writeTasks]);
+
+  const handleCheck = useCallback((id) => {
+    setRemovingIds((prev) => new Set(prev).add(id));
+    setTimeout(() => {
+      setRemovingIds((prev) => { const s = new Set(prev); s.delete(id); return s; });
+      setHiddenIds((prev) => new Set(prev).add(id));
+
+      // If a previous removal is still pending undo, finalize it now —
+      // only one undo toast is shown at a time.
+      if (pendingDeleteRef.current) {
+        clearTimeout(pendingDeleteRef.current.timerId);
+        commitDelete(pendingDeleteRef.current.id);
+      }
+
+      const timerId = setTimeout(() => {
+        commitDelete(id);
+        pendingDeleteRef.current = null;
+        setPendingDelete((cur) => (cur && cur.id === id ? null : cur));
+      }, UNDO_WINDOW_MS);
+
+      const pending = { id, timerId };
+      pendingDeleteRef.current = pending;
+      setPendingDelete(pending);
+    }, 200);
+  }, [commitDelete]);
+
+  const handleUndo = useCallback(() => {
+    if (!pendingDeleteRef.current) return;
+    clearTimeout(pendingDeleteRef.current.timerId);
+    const id = pendingDeleteRef.current.id;
+    setHiddenIds((prev) => { const s = new Set(prev); s.delete(id); return s; });
+    pendingDeleteRef.current = null;
+    setPendingDelete(null);
+  }, []);
+
+  const handleMove = useCallback((id, newTab) => {
+    writeTasks(tasksRef.current.map((t) => (t.id === id ? { ...t, tab: newTab, tabEnteredAt: Date.now() } : t)));
+  }, [writeTasks]);
+
+  const handleCategoryChange = useCallback((id, cat) => {
+    writeTasks(tasksRef.current.map((t) => (t.id === id ? { ...t, category: cat } : t)));
+  }, [writeTasks]);
+
+  const toggleExpand = useCallback((id) => {
+    setExpandedIds((prev) => { const s = new Set(prev); s.has(id) ? s.delete(id) : s.add(id); return s; });
+  }, []);
+
+  const toggleCategory = useCallback((cat) => {
+    setSelectedCategories((prev) => { const s = new Set(prev); s.has(cat) ? s.delete(cat) : s.add(cat); return s; });
+  }, []);
+
+  if (!FIREBASE_CONFIGURED) {
+    return (
+      <div className="config-notice">
+        <h2 className="brand">GSD needs setup</h2>
+        <p>Add your Firebase project config near the top of <code>index.html</code> (look for <code>firebaseConfig</code>), then reload. See <code>README.md</code> for step-by-step instructions.</p>
+      </div>
+    );
+  }
+
+  if (!syncCode) {
+    return <SetupScreen onConnect={connect} />;
+  }
+
+  const urgentCount = tasks.filter((t) => t.tab === 'urgent' && !hiddenIds.has(t.id)).length;
+  const activeTab = tabById(currentTab);
+  const filteredTasks = tasks
+    .filter((t) => t.tab === currentTab)
+    .filter((t) => selectedCategories.size === 0 || selectedCategories.has(t.category))
+    .filter((t) => !hiddenIds.has(t.id))
+    .sort((a, b) => b.createdAt - a.createdAt);
+  const emptyMessage = selectedCategories.size === 0 ? EMPTY_MESSAGES[currentTab] : `No ${categoryListLabel(selectedCategories)} tasks in ${activeTab.label}.`;
+  const pendingTask = pendingDelete ? tasks.find((t) => t.id === pendingDelete.id) : null;
+
+  return (
+    <div className="app-shell">
+      <div className="sidebar">
+        <nav style={{ marginTop: 8 }}>
+          {TABS.map((tab) => {
+            const active = currentTab === tab.id;
+            return (
+              <button key={tab.id} onClick={() => setCurrentTab(tab.id)} className="nav-btn" style={active ? { backgroundColor: tab.color + '18', color: tab.color } : {}}>
+                {tab.id === 'urgent' ? <ZapIcon size={18} /> : tab.id === 'soon' ? <ClockIcon size={18} /> : <CalendarIcon size={18} />}
+                <span className="nav-label">{tab.label}</span>
+                {tab.id === 'urgent' && urgentCount > 0 && <span className="nav-badge" style={{ backgroundColor: tab.color }}>{urgentCount}</span>}
+              </button>
+            );
+          })}
+        </nav>
+      </div>
+
+      <div className="main-content">
+        <div className="filter-row">
+          <div className="filter-chips">
+            <FilterChip
+              label="GSD"
+              active={showSettings}
+              color={isDark ? '#C9C2D1' : '#374151'}
+              activeColor="#4A4351"
+              inactiveFill="#332C39"
+              inactiveBorderColor="#5C4F63"
+              inactiveTextColor="#D9D0DE"
+              onClick={() => setShowSettings(true)}
+            />
+            {categories.map((cat) => (
+              <FilterChip key={cat.name} label={cat.name} active={selectedCategories.has(cat.name)} color={cat.color} activeTextColor="#2A2432" onClick={() => toggleCategory(cat.name)} />
+            ))}
+          </div>
+        </div>
+
+        <div className="add-bar">
+          <div className="add-row">
+            <PillSelect value={newCategory} options={categoryNames.map((c) => ({ value: c, label: c }))} onChange={setNewCategory} colorFor={(c) => categoryColorMap[c] || FALLBACK_CATEGORY_COLOR} ariaLabel="New task category" />
+            <input
+              className="add-input"
+              value={newText}
+              onChange={(e) => setNewText(e.target.value)}
+              onKeyDown={(e) => { if (e.key === 'Enter') handleAdd(); }}
+              placeholder={listening ? 'Listening…' : `Add to ${activeTab.label}...`}
+            />
+            {voiceSupported && (
+              <button
+                className={`icon-btn${listening ? ' listening' : ''}`}
+                onClick={toggleListening}
+                aria-label={listening ? 'Stop voice input' : 'Add task by voice'}
+              >
+                <MicIcon size={16} />
+              </button>
+            )}
+            <button className="icon-btn" onClick={() => setShowContextField((s) => !s)} aria-label="Add context">
+              <FileTextIcon size={16} />
+            </button>
+            <button className="add-btn" onClick={handleAdd} aria-label="Add task" style={{ backgroundColor: activeTab.color }}>
+              <PlusIcon size={16} />
+            </button>
+          </div>
+          {showContextField && (
+            <textarea className="context-input" rows={2} value={newContext} onChange={(e) => setNewContext(e.target.value)} placeholder="Add a note or context (optional)" />
+          )}
+        </div>
+
+        <div className="task-list">
+          {!loaded && <p className="empty-state">Loading your tasks…</p>}
+          {loaded && filteredTasks.length === 0 && <p className="empty-state">{emptyMessage}</p>}
+          {loaded && filteredTasks.map((task) => (
+            <TaskCard
+              key={task.id}
+              task={task}
+              expanded={expandedIds.has(task.id)}
+              removing={removingIds.has(task.id)}
+              onToggleExpand={toggleExpand}
+              onCheck={handleCheck}
+              onMove={handleMove}
+              onCategoryChange={handleCategoryChange}
+              categoryNames={categoryNames}
+              categoryColorMap={categoryColorMap}
+            />
+          ))}
+        </div>
+      </div>
+
+      <div className="bottom-nav">
+        {TABS.map((tab) => {
+          const active = currentTab === tab.id;
+          return (
+            <button key={tab.id} onClick={() => setCurrentTab(tab.id)} className="mnav-item" style={{ color: active ? tab.color : 'var(--faint)' }}>
+              <span className="mnav-badge-wrap">
+                {tab.id === 'urgent' ? <ZapIcon size={20} /> : tab.id === 'soon' ? <ClockIcon size={20} /> : <CalendarIcon size={20} />}
+                {tab.id === 'urgent' && urgentCount > 0 && <span className="mnav-badge" style={{ backgroundColor: tab.color }}>{urgentCount}</span>}
+              </span>
+              <span className="mnav-label">{tab.label}</span>
+            </button>
+          );
+        })}
+      </div>
+
+      {showSettings && (
+        <SettingsModal
+          syncCode={syncCode}
+          isDark={isDark}
+          onToggleTheme={toggleTheme}
+          onClose={() => setShowSettings(false)}
+          onSwitchCode={(code) => { connect(code); setShowSettings(false); }}
+          categories={categories}
+          onRenameCategory={renameCategory}
+          onAddCategory={addCategory}
+          colorThemeId={colorThemeId}
+          onSelectColorTheme={applyColorTheme}
+          escalation={escalation}
+          onUpdateEscalation={updateEscalation}
+        />
+      )}
+
+      {pendingTask && (
+        <div className="undo-toast">
+          <span className="msg">Removed “{pendingTask.text}”</span>
+          <button className="undo-btn" onClick={handleUndo}>Undo</button>
+        </div>
+      )}
+    </div>
+  );
+}
+
+ReactDOM.createRoot(document.getElementById('root')).render(<App />);
+</script>
+
+<script>
+  if ('serviceWorker' in navigator) {
+    window.addEventListener('load', () => {
+      navigator.serviceWorker.register('sw.js').catch(() => {});
+    });
+  }
+</script>
+</body>
+</html>
