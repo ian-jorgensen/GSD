@@ -143,13 +143,13 @@
     transition: opacity .2s ease, transform .2s ease, background-color .2s ease, border-color .2s ease;
   }
   .task-card.removing { opacity: 0; transform: scale(0.95); }
-  .task-row { display: flex; align-items: flex-start; flex-wrap: wrap; gap: 8px; }
+  .task-row { display: flex; align-items: flex-start; flex-wrap: wrap; gap: 6px; }
   .checkbox {
     width: 20px; height: 20px; border: 2px solid;
     background: transparent; flex-shrink: 0; margin-top: 2px; padding: 0;
   }
   .task-text-btn {
-    flex: 0 1 auto; min-width: 60px; max-width: 100%; text-align: left; background: none; border: none; padding: 0;
+    flex: 0 1 auto; min-width: 40px; max-width: 100%; text-align: left; background: none; border: none; padding: 0;
   }
   .task-text { font-size: 14px; line-height: 1.45; color: var(--ink); margin: 0; }
   .chevron-btn { background: none; border: none; color: var(--faint); flex-shrink: 0; margin-top: 2px; padding: 0; }
@@ -158,9 +158,9 @@
   .pill-select { position: relative; display: inline-flex; align-items: center; border: 1px solid; flex-shrink: 0; }
   .pill-select select {
     appearance: none; -webkit-appearance: none; background: transparent; border: none;
-    padding: 4px 20px 4px 10px; font-size: 12px; font-weight: 500; outline: none;
+    padding: 4px 16px 4px 8px; font-size: 12px; font-weight: 500; outline: none;
   }
-  .pill-select .chev { position: absolute; right: 6px; pointer-events: none; }
+  .pill-select .chev { position: absolute; right: 4px; pointer-events: none; }
 
   /* ---------- Setup / settings ---------- */
   .setup-wrap {
@@ -677,6 +677,7 @@ function App() {
   const [listening, setListening] = useState(false);
   const [voiceSupported, setVoiceSupported] = useState(false);
   const [voiceError, setVoiceError] = useState('');
+  const [voiceConfirm, setVoiceConfirm] = useState('');
   const recognitionRef = useRef(null);
 
   useEffect(() => {
@@ -702,19 +703,33 @@ function App() {
       return;
     }
     setVoiceError('');
+    let gotError = false;
+    let gotResult = false;
+    let startedAt = 0;
     const recognition = new SpeechRecognition();
     recognition.lang = navigator.language || 'en-US';
     recognition.interimResults = true;
     recognition.continuous = false;
-    recognition.onstart = () => { setListening(true); setNewText(''); };
+    recognition.onstart = () => { startedAt = Date.now(); setListening(true); setNewText(''); };
     recognition.onerror = (event) => {
+      gotError = true;
       console.error('Speech recognition error:', event.error);
       setListening(false);
       setVoiceError(VOICE_ERROR_MESSAGES[event.error] || `Voice input failed (${event.error})`);
       setTimeout(() => setVoiceError(''), 4000);
     };
-    recognition.onend = () => setListening(false);
+    recognition.onend = () => {
+      setListening(false);
+      // Some Android builds end silently (no error event) when the mic is
+      // blocked or unavailable — catch that by noticing it stopped almost
+      // instantly without ever producing a result.
+      if (!gotError && !gotResult && Date.now() - startedAt < 1500) {
+        setVoiceError('Voice input stopped — check mic permission for this app');
+        setTimeout(() => setVoiceError(''), 4000);
+      }
+    };
     recognition.onresult = (event) => {
+      gotResult = true;
       let interim = '';
       let final = '';
       for (let i = event.resultIndex; i < event.results.length; i++) {
@@ -724,16 +739,23 @@ function App() {
       }
       if (final) {
         const parsed = parseVoiceCommand(final.trim(), categoriesRef.current.map((c) => c.name));
+        const targetTab = parsed.tab || currentTab;
+        const targetCategory = parsed.category || newCategory;
         if (parsed.tab) setCurrentTab(parsed.tab);
         if (parsed.category) setNewCategory(parsed.category);
-        setNewText(parsed.text.trim());
+        if (parsed.text.trim()) {
+          createTask(parsed.text, targetCategory, targetTab);
+          setVoiceConfirm(`Added to ${targetCategory} · ${tabById(targetTab).label}`);
+          setTimeout(() => setVoiceConfirm(''), 2500);
+        }
+        setNewText('');
       } else if (interim) {
         setNewText(interim);
       }
     };
     recognitionRef.current = recognition;
     recognition.start();
-  }, [listening]);
+  }, [listening, createTask, currentTab, newCategory]);
 
   const tasksRef = useRef([]);
   useEffect(() => { tasksRef.current = tasks; }, [tasks]);
@@ -875,14 +897,18 @@ function App() {
     return () => clearInterval(interval);
   }, [escalation, loaded, writeTasks]);
 
-  const handleAdd = useCallback(() => {
-    const text = newText.trim();
-    if (!text) return;
+  const createTask = useCallback((text, category, tab, context = '') => {
+    const trimmed = text.trim();
+    if (!trimmed) return;
     const now = Date.now();
-    const task = { id: uid(), text, context: newContext.trim(), category: newCategory, tab: currentTab, createdAt: now, tabEnteredAt: now };
+    const task = { id: uid(), text: trimmed, context: context.trim(), category, tab, createdAt: now, tabEnteredAt: now };
     writeTasks([task, ...tasksRef.current]);
+  }, [writeTasks]);
+
+  const handleAdd = useCallback(() => {
+    createTask(newText, newCategory, currentTab, newContext);
     setNewText(''); setNewContext(''); setShowContextField(false);
-  }, [newText, newContext, newCategory, currentTab, writeTasks]);
+  }, [newText, newContext, newCategory, currentTab, createTask]);
 
   const commitDelete = useCallback((id) => {
     writeTasks(tasksRef.current.filter((t) => t.id !== id));
@@ -1006,7 +1032,7 @@ function App() {
               value={newText}
               onChange={(e) => setNewText(e.target.value)}
               onKeyDown={(e) => { if (e.key === 'Enter') handleAdd(); }}
-              placeholder={voiceError || (listening ? 'Listening…' : `Add to ${activeTab.label}...`)}
+              placeholder={voiceError || voiceConfirm || (listening ? 'Listening…' : `Add to ${activeTab.label}...`)}
             />
             {voiceSupported && (
               <button
