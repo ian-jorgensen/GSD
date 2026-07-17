@@ -88,10 +88,6 @@
     font-size: 11px; font-weight: 600; border-radius: 999px;
     padding: 1px 6px; color: #2A2432;
   }
-  .theme-btn {
-    background: none; border: none; color: var(--faint); padding: 6px;
-    display: flex; align-items: center; justify-content: center;
-  }
 
   .mnav-item {
     flex: 1; display: flex; flex-direction: column; align-items: center; gap: 2px;
@@ -143,17 +139,19 @@
     transition: opacity .2s ease, transform .2s ease, background-color .2s ease, border-color .2s ease;
   }
   .task-card.removing { opacity: 0; transform: scale(0.95); }
-  .task-row { display: flex; align-items: flex-start; flex-wrap: wrap; gap: 6px; }
+  .task-row { display: flex; align-items: center; flex-wrap: wrap; gap: 6px; }
   .checkbox {
     width: 20px; height: 20px; border: 2px solid;
-    background: transparent; flex-shrink: 0; margin-top: 2px; padding: 0;
+    background: transparent; flex-shrink: 0; padding: 0;
   }
   .task-text-btn {
     flex: 0 1 auto; min-width: 40px; max-width: 100%; text-align: left; background: none; border: none; padding: 0;
   }
   .task-text { font-size: 14px; line-height: 1.45; color: var(--ink); margin: 0; }
-  .chevron-btn { background: none; border: none; color: var(--faint); flex-shrink: 0; margin-top: 2px; padding: 0; }
-  .context-text { margin: 8px 0 0 28px; font-size: 14px; color: var(--muted); white-space: pre-wrap; }
+  .context-text { margin: 0 0 8px 0; font-size: 14px; color: var(--muted); white-space: pre-wrap; }
+  .task-expanded { margin-top: 8px; margin-left: 28px; }
+  .meta-row { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+  .icon-toggle-btn { background: none; border: none; padding: 4px; display: flex; align-items: center; justify-content: center; }
 
   .pill-select { position: relative; display: inline-flex; align-items: center; border: 1px solid; flex-shrink: 0; }
   .pill-select select {
@@ -298,7 +296,7 @@ if (FIREBASE_CONFIGURED) {
 }
 
 /* ---------- Data ---------- */
-const DEFAULT_CATEGORY_NAMES = ['Camp', 'Hum', 'Synthstrom', 'App', 'Photo', 'Personal'];
+const DEFAULT_CATEGORY_NAMES = ['Camp', 'Hum', 'Synthstrom', 'Dev', 'Photo', 'Personal'];
 
 const COLOR_THEMES = [
   { id: 'gsdPrimary', name: 'GSD Primary', palette: ['#A8C6A1', '#B8A9E0', '#F2B880', '#E8A0B4', '#A8CDE0', '#C9BFB4'] },
@@ -400,8 +398,6 @@ const FileTextIcon = (p) => <Icon {...p}><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0
 const CopyIcon = (p) => <Icon {...p}><rect x="9" y="9" width="12" height="12" rx="2" /><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1" /></Icon>;
 const XIcon = (p) => <Icon {...p}><line x1="18" y1="6" x2="6" y2="18" /><line x1="6" y1="6" x2="18" y2="18" /></Icon>;
 const MicIcon = (p) => <Icon {...p}><rect x="9" y="2" width="6" height="12" rx="3" /><path d="M5 10a7 7 0 0 0 14 0" /><line x1="12" y1="19" x2="12" y2="22" /><line x1="8" y1="22" x2="16" y2="22" /></Icon>;
-const SunIcon = (p) => <Icon {...p}><circle cx="12" cy="12" r="4" /><line x1="12" y1="2" x2="12" y2="4" /><line x1="12" y1="20" x2="12" y2="22" /><line x1="4.93" y1="4.93" x2="6.34" y2="6.34" /><line x1="17.66" y1="17.66" x2="19.07" y2="19.07" /><line x1="2" y1="12" x2="4" y2="12" /><line x1="20" y1="12" x2="22" y2="12" /><line x1="4.93" y1="19.07" x2="6.34" y2="17.66" /><line x1="17.66" y1="6.34" x2="19.07" y2="4.93" /></Icon>;
-const MoonIcon = (p) => <Icon {...p}><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z" /></Icon>;
 
 /* ---------- Small reusable pieces ---------- */
 function PillSelect({ value, options, onChange, colorFor, ariaLabel }) {
@@ -415,6 +411,19 @@ function PillSelect({ value, options, onChange, colorFor, ariaLabel }) {
     </div>
   );
 }
+
+const StarIcon = ({ size = 16, filled }) => (
+  <svg width={size} height={size} viewBox="0 0 24 24" fill={filled ? 'currentColor' : 'none'} stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+    <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2" />
+  </svg>
+);
+const ExclaimIcon = ({ size = 16 }) => (
+  <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+    <circle cx="12" cy="12" r="9" />
+    <line x1="12" y1="8" x2="12" y2="13" />
+    <line x1="12" y1="16" x2="12.01" y2="16" />
+  </svg>
+);
 
 function ThemeSwatch({ themeDef, active, onClick }) {
   return (
@@ -444,25 +453,32 @@ function FilterChip({ label, active, color, activeColor, activeTextColor, inacti
   );
 }
 
-function TaskCard({ task, expanded, removing, onToggleExpand, onCheck, onMove, onCategoryChange, categoryNames, categoryColorMap }) {
+function TaskCard({ task, expanded, removing, onToggleExpand, onCheck, onMove, onCategoryChange, onToggleStar, onToggleFlag, categoryNames, categoryColorMap }) {
   const catColor = categoryColorMap[task.category] || FALLBACK_CATEGORY_COLOR;
   const hasContext = Boolean(task.context && task.context.trim().length > 0);
   return (
-    <div className={`task-card${removing ? ' removing' : ''}`}>
+    <div className={`task-card${removing ? ' removing' : ''}`} style={{ borderColor: catColor + '55', backgroundColor: catColor + '1A' }}>
       <div className="task-row">
-        <button onClick={() => onCheck(task.id)} aria-label="Complete task and remove it" className="checkbox" style={{ borderColor: catColor }} />
-        <button onClick={hasContext ? () => onToggleExpand(task.id) : undefined} className="task-text-btn">
+        <button onClick={() => onCheck(task.id)} aria-label="Complete task and remove it" className="checkbox" style={{ borderColor: '#8D8296' }} />
+        <button onClick={() => onToggleExpand(task.id)} className="task-text-btn">
           <p className="task-text">{task.text}</p>
         </button>
-        {hasContext && (
-          <button onClick={() => onToggleExpand(task.id)} aria-label={expanded ? 'Collapse context' : 'Expand context'} className="chevron-btn">
-            {expanded ? <ChevronUpIcon size={16} /> : <ChevronDownIcon size={16} />}
-          </button>
-        )}
-        <PillSelect value={task.category} options={categoryNames.map((c) => ({ value: c, label: c }))} onChange={(v) => onCategoryChange(task.id, v)} colorFor={(c) => categoryColorMap[c] || FALLBACK_CATEGORY_COLOR} ariaLabel="Change category" />
-        <PillSelect value={task.tab} options={TABS.map((t) => ({ value: t.id, label: t.label }))} onChange={(v) => onMove(task.id, v)} colorFor={(id) => tabById(id).color} ariaLabel="Move to" />
       </div>
-      {hasContext && expanded && <p className="context-text">{task.context}</p>}
+      {expanded && (
+        <div className="task-expanded" onClick={(e) => e.stopPropagation()}>
+          {hasContext && <p className="context-text">{task.context}</p>}
+          <div className="meta-row">
+            <PillSelect value={task.category} options={categoryNames.map((c) => ({ value: c, label: c }))} onChange={(v) => onCategoryChange(task.id, v)} colorFor={(c) => categoryColorMap[c] || FALLBACK_CATEGORY_COLOR} ariaLabel="Change category" />
+            <PillSelect value={task.tab} options={TABS.map((t) => ({ value: t.id, label: t.label }))} onChange={(v) => onMove(task.id, v)} colorFor={(id) => tabById(id).color} ariaLabel="Move to" />
+            <button onClick={() => onToggleStar(task.id)} aria-label={task.starred ? 'Unstar task' : 'Star task'} className="icon-toggle-btn" style={{ color: task.starred ? '#FFF9A0' : '#9CA3AF' }}>
+              <StarIcon size={16} filled={task.starred} />
+            </button>
+            <button onClick={() => onToggleFlag(task.id)} aria-label={task.flagged ? 'Remove priority flag' : 'Flag as top priority'} className="icon-toggle-btn" style={{ color: task.flagged ? '#DB9385' : '#9CA3AF' }}>
+              <ExclaimIcon size={16} />
+            </button>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
@@ -513,7 +529,7 @@ function SettingsSection({ title, defaultOpen, children }) {
   );
 }
 
-function SettingsModal({ syncCode, isDark, onToggleTheme, onClose, onSwitchCode, categories, onRenameCategory, onAddCategory, colorThemeId, onSelectColorTheme, escalation, onUpdateEscalation }) {
+function SettingsModal({ syncCode, isDark, onToggleTheme, onClose, onSwitchCode, categories, onRenameCategory, onAddCategory, colorThemeId, onSelectColorTheme, escalation, onUpdateEscalation, homeTab, onUpdateHomeTab }) {
   const [copied, setCopied] = useState(false);
   const [draft, setDraft] = useState('');
   const [catDrafts, setCatDrafts] = useState(() => Object.fromEntries(categories.map((c) => [c.name, c.name])));
@@ -549,10 +565,42 @@ function SettingsModal({ syncCode, isDark, onToggleTheme, onClose, onSwitchCode,
 
         <div className="settings-row settings-row-fixed">
           <span>Dark mode</span>
-          <button className="theme-btn" onClick={onToggleTheme} aria-label={isDark ? 'Switch to light mode' : 'Switch to dark mode'}>
-            {isDark ? <SunIcon size={18} /> : <MoonIcon size={18} />}
+          <button
+            className="toggle-switch"
+            onClick={onToggleTheme}
+            aria-label={isDark ? 'Turn off dark mode' : 'Turn on dark mode'}
+            style={{ backgroundColor: isDark ? '#4A4351' : 'var(--hairline)' }}
+          >
+            <span className="toggle-knob" style={{ left: isDark ? 20 : 2 }} />
           </button>
         </div>
+
+        <SettingsSection title="Home">
+          <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', marginBottom: 8 }}>
+            {[
+              { id: 'urgent', label: 'Urgent' },
+              { id: 'soon', label: 'Soon' },
+              { id: 'future', label: 'Future' },
+              { id: 'most', label: 'Most' },
+            ].map((opt) => (
+              <button
+                key={opt.id}
+                onClick={() => onUpdateHomeTab(opt.id)}
+                style={{
+                  padding: '6px 12px', fontSize: 12, fontWeight: 500, border: '1px solid',
+                  backgroundColor: homeTab === opt.id ? '#4A4351' : 'transparent',
+                  borderColor: homeTab === opt.id ? '#4A4351' : 'var(--hairline)',
+                  color: homeTab === opt.id ? '#fff' : 'var(--ink)',
+                }}
+              >
+                {opt.label}
+              </button>
+            ))}
+          </div>
+          <p style={{ fontSize: 12, color: 'var(--muted)', margin: 0 }}>
+            "Most" opens whichever tab currently has the most tasks.
+          </p>
+        </SettingsSection>
 
         <SettingsSection title="Color theme">
           <div className="theme-swatch-grid">
@@ -652,6 +700,8 @@ function App() {
   useEffect(() => { colorThemeIdRef.current = colorThemeId; }, [colorThemeId]);
   useEffect(() => { categoriesRef.current = categories; }, [categories]);
   const [escalation, setEscalation] = useState(DEFAULT_ESCALATION);
+  const [homeTab, setHomeTab] = useState('soon');
+  const appliedHomeTabRef = useRef(false);
   const [currentTab, setCurrentTab] = useState('soon');
   const [selectedCategories, setSelectedCategories] = useState(() => new Set());
   const [expandedIds, setExpandedIds] = useState(new Set());
@@ -815,6 +865,7 @@ function App() {
           setCategories((data && Array.isArray(data.categories) && data.categories.length > 0) ? data.categories : DEFAULT_CATEGORIES);
           setColorThemeId((data && data.colorThemeId) || 'gsdPrimary');
           setEscalation({ ...DEFAULT_ESCALATION, ...((data && data.escalation) || {}) });
+          setHomeTab((data && data.homeTab) || 'soon');
           setLoaded(true);
           if (needsMigration && syncCode && FIREBASE_CONFIGURED) {
             db.collection('todos').doc(syncCode).set({ tasks: migratedTasks, updatedAt: Date.now() }, { merge: true });
@@ -876,6 +927,37 @@ function App() {
       return next;
     });
   }, [syncCode]);
+
+  const resolveTabFromPref = useCallback((pref, taskList) => {
+    if (pref === 'most') {
+      const counts = { urgent: 0, soon: 0, future: 0 };
+      taskList.forEach((t) => { if (counts[t.tab] !== undefined) counts[t.tab]++; });
+      let best = 'soon';
+      let bestCount = -1;
+      ['urgent', 'soon', 'future'].forEach((id) => {
+        if (counts[id] > bestCount) { bestCount = counts[id]; best = id; }
+      });
+      return best;
+    }
+    return ['urgent', 'soon', 'future'].includes(pref) ? pref : 'soon';
+  }, []);
+
+  // Apply the chosen home tab once, as soon as data has loaded — never again
+  // after that, so manual tab switches during the session aren't overridden.
+  useEffect(() => {
+    if (appliedHomeTabRef.current) return;
+    if (!loaded) return;
+    appliedHomeTabRef.current = true;
+    setCurrentTab(resolveTabFromPref(homeTab, tasksRef.current));
+  }, [homeTab, loaded, resolveTabFromPref]);
+
+  const updateHomeTab = useCallback((pref) => {
+    setHomeTab(pref);
+    setCurrentTab(resolveTabFromPref(pref, tasksRef.current));
+    if (syncCode && FIREBASE_CONFIGURED) {
+      db.collection('todos').doc(syncCode).set({ homeTab: pref, updatedAt: Date.now() }, { merge: true });
+    }
+  }, [syncCode, resolveTabFromPref]);
 
   // Auto-move tasks that have sat in Future/Soon past their configured threshold.
   useEffect(() => {
@@ -957,6 +1039,14 @@ function App() {
     writeTasks(tasksRef.current.map((t) => (t.id === id ? { ...t, category: cat } : t)));
   }, [writeTasks]);
 
+  const toggleStar = useCallback((id) => {
+    writeTasks(tasksRef.current.map((t) => (t.id === id ? { ...t, starred: !t.starred } : t)));
+  }, [writeTasks]);
+
+  const toggleFlag = useCallback((id) => {
+    writeTasks(tasksRef.current.map((t) => (t.id === id ? { ...t, flagged: !t.flagged } : t)));
+  }, [writeTasks]);
+
   const toggleExpand = useCallback((id) => {
     setExpandedIds((prev) => { const s = new Set(prev); s.has(id) ? s.delete(id) : s.add(id); return s; });
   }, []);
@@ -980,11 +1070,17 @@ function App() {
 
   const urgentCount = tasks.filter((t) => t.tab === 'urgent' && !hiddenIds.has(t.id)).length;
   const activeTab = tabById(currentTab);
+  const priorityTier = (t) => (t.flagged ? 2 : t.starred ? 1 : 0);
   const filteredTasks = tasks
     .filter((t) => t.tab === currentTab)
     .filter((t) => selectedCategories.size === 0 || selectedCategories.has(t.category))
     .filter((t) => !hiddenIds.has(t.id))
-    .sort((a, b) => b.createdAt - a.createdAt);
+    .sort((a, b) => {
+      const tierDiff = priorityTier(b) - priorityTier(a);
+      if (tierDiff !== 0) return tierDiff;
+      if (priorityTier(a) > 0) return a.text.localeCompare(b.text);
+      return b.createdAt - a.createdAt;
+    });
   const emptyMessage = selectedCategories.size === 0 ? EMPTY_MESSAGES[currentTab] : `No ${categoryListLabel(selectedCategories)} tasks in ${activeTab.label}.`;
   const pendingTask = pendingDelete ? tasks.find((t) => t.id === pendingDelete.id) : null;
 
@@ -1068,6 +1164,8 @@ function App() {
               onCheck={handleCheck}
               onMove={handleMove}
               onCategoryChange={handleCategoryChange}
+              onToggleStar={toggleStar}
+              onToggleFlag={toggleFlag}
               categoryNames={categoryNames}
               categoryColorMap={categoryColorMap}
             />
@@ -1104,6 +1202,8 @@ function App() {
           onSelectColorTheme={applyColorTheme}
           escalation={escalation}
           onUpdateEscalation={updateEscalation}
+          homeTab={homeTab}
+          onUpdateHomeTab={updateHomeTab}
         />
       )}
 
